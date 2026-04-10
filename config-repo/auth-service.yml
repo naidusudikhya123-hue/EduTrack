@@ -1,0 +1,15 @@
+jwt:
+  expiration: 360000
+  secret: mysecretkey-online-learning-platform-system8182056
+
+server:
+  port: 9009
+
+spring:
+  datasource:
+    password: 12345
+    url: jdbc:mysql://localhost:3306/edutrackauthservice?createDatabaseIfNotExist=true
+    username: root
+  jpa:
+    hibernate:
+      ddl-auto: update

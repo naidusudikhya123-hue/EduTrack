@@ -1,0 +1,62 @@
+server:
+  port: 9000
+
+spring:
+  cloud:
+    gateway:
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: true
+              lower-case-service-id: true
+
+          routes:
+
+            - id: auth-service
+              uri: lb://auth-service
+              predicates:
+                - Path=/auth/**
+
+            - id: user-service
+              uri: lb://user-service
+              predicates:
+                - Path=/users/**
+
+            - id: enrollments
+              uri: lb://enrollments
+              predicates:
+                - Path=/enrollments/**
+
+            - id: course-service
+              uri: lb://course-service
+              predicates:
+                - Path=/courses/**
+
+            - id: certificateService
+              uri: lb://certificateService
+              predicates:
+                - Path=/certificates/**
+
+            - id: assessment-service
+              uri: lb://assessment-service
+              predicates:
+                - Path=/quizzes/**
+
+            - id: Payment-Service
+              uri: lb://Payment-Service
+              predicates:
+                - Path=/payments/**
+  main:
+    web-application-type: reactive
+
+app:
+  jwt:
+    secret: mysecretkey-online-learning-platform-system8182056
+
+logging:
+  level:
+    org:
+      springframework:
+        cloud:
+          gateway: DEBUG
