@@ -1,0 +1,15 @@
+# Tests: no config server / Eureka required
+spring:
+  application:
+    name: notification-service
+  cloud:
+    config:
+      enabled: false
+  kafka:
+    consumer:
+      group-id: notification-group
+      auto-offset-reset: earliest
+
+eureka:
+  client:
+    enabled: false
