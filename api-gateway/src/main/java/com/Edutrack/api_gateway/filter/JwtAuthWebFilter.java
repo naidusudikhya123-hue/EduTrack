@@ -6,6 +6,8 @@ import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import com.Edutrack.api_gateway.security.GatewayRoleAuthorization;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
@@ -33,14 +35,17 @@ public class JwtAuthWebFilter implements WebFilter {
 
         String path = exchange.getRequest().getURI().getPath();
 
-        // ✅ Skip authentication for public endpoints
         if (isPublicEndpoint(path)) {
             return chain.filter(exchange);
         }
 
+        // Browsers send OPTIONS without Authorization for CORS preflight — do not block it.
+        if (HttpMethod.OPTIONS.equals(exchange.getRequest().getMethod())) {
+            return chain.filter(exchange);
+        }
+
         String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
-        System.out.println(authHeader);
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        if (!isBearerAuthorization(authHeader)) {
             log.warn("Missing or invalid Authorization header for path: {}", path);
 //            System.out.println(authHeader);
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
@@ -48,7 +53,7 @@ public class JwtAuthWebFilter implements WebFilter {
         }
 
         try {
-            String token = authHeader.substring(7);
+            String token = authHeader.substring(7).trim();
 
             Claims claims = Jwts.parserBuilder()
                     .setSigningKey(secretKey)
@@ -65,11 +70,17 @@ public class JwtAuthWebFilter implements WebFilter {
                 return exchange.getResponse().setComplete();
             }
 
-            // Add custom headers to downstream services
+            HttpMethod method = exchange.getRequest().getMethod();
+            if (method == null || !GatewayRoleAuthorization.isAllowed(role, method, path)) {
+                log.warn("Forbidden for role={} method={} path={}", role, method, path);
+                exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
+                return exchange.getResponse().setComplete();
+            }
+
             ServerHttpRequest modifiedRequest = exchange.getRequest()
                     .mutate()
                     .header("X-User-Id", userId)
-                    .header("X-User-Roles", role)
+                    .header("X-User-Roles", GatewayRoleAuthorization.normalizeRole(role))
                     .build();
 
             log.info("JWT verified successfully: userId={}, role={}", userId, role);
@@ -84,6 +95,16 @@ public class JwtAuthWebFilter implements WebFilter {
     }
 
     private boolean isPublicEndpoint(String path) {
-        return path.startsWith("/auth") || path.startsWith("/public") || path.equals("/");
+        return path.startsWith("/auth")
+                || path.startsWith("/public")
+                || path.startsWith("/actuator")
+                || path.equals("/");
+    }
+
+    /** Accepts {@code Authorization: Bearer <token>} with case-insensitive {@code Bearer}. */
+    private static boolean isBearerAuthorization(String authHeader) {
+        return authHeader != null
+                && authHeader.length() > 7
+                && authHeader.regionMatches(true, 0, "Bearer ", 0, 7);
     }
 }

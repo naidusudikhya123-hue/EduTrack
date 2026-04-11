@@ -1,7 +1,6 @@
 package com.example.Payment_Service.dto;
 
 import com.example.Payment_Service.enums.PaymentStatus;
-import java.time.LocalDateTime;
 
 public class PaymentResponseDTO {
     private String paymentId;
@@ -9,7 +8,6 @@ public class PaymentResponseDTO {
     private String courseId;
     private Double amount;
     private PaymentStatus status;
-    private LocalDateTime createdAt;
 
     public String getPaymentId() {
         return paymentId;
@@ -49,13 +47,5 @@ public class PaymentResponseDTO {
 
     public void setStatus(PaymentStatus status) {
         this.status = status;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
     }
 }

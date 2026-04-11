@@ -1,16 +1,17 @@
 package com.Edutrack.enrollments.service.impl;
 
-import com.Edutrack.enrollments.enums.PaymentStatus;
 import com.Edutrack.enrollments.client.CourseClient;
-import com.Edutrack.enrollments.client.PaymentClient;
 import com.Edutrack.enrollments.client.UserClient;
 import com.Edutrack.enrollments.dto.*;
 import com.Edutrack.enrollments.entity.Enrollment;
 import com.Edutrack.enrollments.enums.EnrollmentStatus;
-import com.Edutrack.enrollments.exception.*;
+import com.Edutrack.enrollments.exception.EnrollmentAlreadyExistsException;
+import com.Edutrack.enrollments.exception.EnrollmentNotFoundException;
+import com.Edutrack.enrollments.exception.UserNotFoundException;
 import com.Edutrack.enrollments.mapper.EnrollmentMapper;
 import com.Edutrack.enrollments.repository.EnrollmentRepository;
 import com.Edutrack.enrollments.service.EnrollmentService;
+import feign.FeignException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -21,14 +22,11 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     private final EnrollmentRepository enrollmentRepository;
     private final UserClient userClient;
     private final CourseClient courseClient;
-    private final PaymentClient paymentClient;
-    private PaymentStatus status;
 
-    public EnrollmentServiceImpl(UserClient userClient, EnrollmentRepository enrollmentRepository, CourseClient courseClient, PaymentClient paymentClient) {
+    public EnrollmentServiceImpl(UserClient userClient, EnrollmentRepository enrollmentRepository, CourseClient courseClient) {
         this.userClient = userClient;
         this.enrollmentRepository = enrollmentRepository;
         this.courseClient = courseClient;
-        this.paymentClient = paymentClient;
     }
 
     @Override
@@ -41,6 +39,8 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             throw new RuntimeException("Course not found");
         }
 
+        ensureUserExists(dto.getUserId());
+
         if (enrollmentRepository.existsByUserIdAndCourseId(
                 dto.getUserId(), dto.getCourseId())) {
 
@@ -49,22 +49,9 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             );
         }
 
-        List<PaymentResponseDTO> payments =
-                paymentClient.getPaymentsByUser(dto.getUserId());
-        System.out.println("payments"+payments);
 
 
-        boolean isPaid = payments.stream()
-                .anyMatch(p ->
-                        p.getCourseId().equals(dto.getCourseId()) &&
-                                p.getStatus() != null &&
-                                p.getStatus().toString().equalsIgnoreCase("SUCCESS")
-                );
 
-        if (!isPaid) {
-            throw new RuntimeException("Payment not completed for this course");
-        }
-        System.out.println("is paid? "+isPaid);
 
         String enrollmentId = "e" + (enrollmentRepository.count() + 1);
 
@@ -139,6 +126,8 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             throw new RuntimeException("Course not found");
         }
 
+        ensureUserExists(dto.getUserId());
+
         if (enrollmentRepository.existsByUserIdAndCourseId(dto.getUserId(), dto.getCourseId())) {
             throw new EnrollmentAlreadyExistsException("User already enrolled in this course");
         }
@@ -156,6 +145,17 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         response.setCourseDescription(course.getDescription());
 
         return response;
+    }
+
+    private void ensureUserExists(String userId) {
+        try {
+            userClient.getUserById(userId);
+        } catch (FeignException e) {
+            if (e.status() == 404) {
+                throw new UserNotFoundException("User not found: " + userId);
+            }
+            throw new RuntimeException("Unable to validate user: " + e.getMessage(), e);
+        }
     }
 
 }

@@ -2,6 +2,7 @@ package com.course.mapper;
 
 import com.course.dto.CourseDTO;
 import com.course.entity.CourseEntity;
+import com.course.enums.CourseType;
 
 import java.util.List;
 
@@ -12,7 +13,7 @@ public class CourseMapper {
         courseEntity.setCourseId(courseDTO.getCourseId());
         courseEntity.setDescription(courseDTO.getDescription());
         courseEntity.setPrice(courseDTO.getPrice());
-        courseEntity.setStatus(courseDTO.getStatus());
+        courseEntity.setCourseType(courseDTO.getCourseType());
         courseEntity.setTitle(courseDTO.getTitle());
         courseEntity.setInstructorId(courseDTO.getInstructorId());
         return courseEntity;
@@ -23,8 +24,9 @@ public class CourseMapper {
         courseDTO.setCourseId(courseEntity.getCourseId());
         courseDTO.setDescription(courseEntity.getDescription());
         courseDTO.setPrice(courseEntity.getPrice());
+        courseDTO.setCourseType(courseEntity.getCourseType());
+        courseDTO.setFree(courseEntity.getCourseType() == CourseType.FREE);
         courseDTO.setInstructorId(courseEntity.getInstructorId());
-        courseDTO.setStatus(courseEntity.getStatus());
         courseDTO.setTitle(courseEntity.getTitle());
         return courseDTO;
     }

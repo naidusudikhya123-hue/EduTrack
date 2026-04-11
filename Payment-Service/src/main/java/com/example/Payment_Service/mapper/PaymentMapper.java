@@ -3,6 +3,7 @@ package com.example.Payment_Service.mapper;
 import com.example.Payment_Service.dto.PaymentCreateRequestDTO;
 import com.example.Payment_Service.dto.PaymentResponseDTO;
 import com.example.Payment_Service.entity.Payment;
+import com.example.Payment_Service.enums.PaymentStatus;
 
 public class PaymentMapper {
     public static Payment toEntity(PaymentCreateRequestDTO dto,String paymentId)
@@ -11,9 +12,8 @@ public class PaymentMapper {
         payment.setPaymentId(paymentId);
         payment.setUserId(dto.getUserId());
         payment.setCourseId(dto.getCourseId());
-        payment.setEnrollmentId(dto.getEnrollmentId());
         payment.setAmount(dto.getAmount());
-        payment.setPaymentMethod(dto.getPaymentMethod());
+        payment.setStatus(PaymentStatus.PENDING);
         return payment;
 
     }
@@ -25,8 +25,7 @@ public class PaymentMapper {
         dto.setUserId(payment.getUserId());
         dto.setCourseId(payment.getCourseId());
         dto.setAmount(payment.getAmount());
-        dto.setStatus(payment.getPaymentStatus());
-        dto.setCreatedAt(payment.getCreatedAt());
+        dto.setStatus(payment.getStatus());
         return dto;
     }
 }

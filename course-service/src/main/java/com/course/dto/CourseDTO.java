@@ -1,6 +1,7 @@
 package com.course.dto;
 
-import com.course.enums.CourseStatus;
+import com.course.enums.CourseType;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 
 public class CourseDTO {
@@ -18,10 +19,14 @@ public class CourseDTO {
     @PositiveOrZero(message = "price must be zero or positive")
     private double price;
 
+    @NotNull(message = "courseType is required (FREE or PAID)")
+    private CourseType courseType;
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private boolean isFree;
+
     @Pattern(regexp = "^i\\d+$", message = "instructorId must be in format i1, i2, i3")
     private String instructorId;
-
-    private CourseStatus status;
 
     public String getCourseId() { return courseId; }
     public void setCourseId(String courseId) { this.courseId = courseId; }
@@ -35,9 +40,12 @@ public class CourseDTO {
     public double getPrice() { return price; }
     public void setPrice(double price) { this.price = price; }
 
+    public CourseType getCourseType() { return courseType; }
+    public void setCourseType(CourseType courseType) { this.courseType = courseType; }
+
+    public boolean isFree() { return isFree; }
+    public void setFree(boolean free) { isFree = free; }
+
     public String getInstructorId() { return instructorId; }
     public void setInstructorId(String instructorId) { this.instructorId = instructorId; }
-
-    public CourseStatus getStatus() { return status; }
-    public void setStatus(CourseStatus status) { this.status = status; }
 }

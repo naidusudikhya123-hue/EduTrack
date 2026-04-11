@@ -13,3 +13,33 @@ spring:
       hibernate:
         format_sql: true
     show-sql: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+logging:
+  pattern:
+    level: "%5p [${spring.application.name},%X{traceId},%X{spanId}]"
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,loggers
+  endpoint:
+    health:
+      show-details: always
+  tracing:
+    export:
+      zipkin:
+        endpoint: http://localhost:9411/api/v2/spans
+    sampling:
+      probability: 1.0   # trace all requests
+    propagation:
+      type: B3

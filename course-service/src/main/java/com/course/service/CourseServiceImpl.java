@@ -2,6 +2,7 @@ package com.course.service;
 
 import com.course.dto.CourseDTO;
 import com.course.entity.CourseEntity;
+import com.course.enums.CourseType;
 import com.course.exception.ResourceNotFoundException;
 import com.course.mapper.CourseMapper;
 import com.course.repository.CourseRepository;
@@ -14,15 +15,34 @@ import java.util.stream.Collectors;
 public class CourseServiceImpl implements CourseService {
 
     private final CourseRepository courseRepository;
+    private final KafkaProducerService kafkaProducerService;
 
-    public CourseServiceImpl(CourseRepository courseRepository) {
+    public CourseServiceImpl(CourseRepository courseRepository, KafkaProducerService kafkaProducerService) {
         this.courseRepository = courseRepository;
+        this.kafkaProducerService = kafkaProducerService;
+    }
+
+    private static void normalizeAndValidatePricing(CourseDTO courseDTO) {
+        if (courseDTO.getCourseType() == null) {
+            throw new IllegalArgumentException("courseType is required (FREE or PAID)");
+        }
+
+        if (courseDTO.getCourseType() == CourseType.FREE) {
+            courseDTO.setPrice(0);
+            return;
+        }
+
+        if (courseDTO.getPrice() <= 0) {
+            throw new IllegalArgumentException("price must be greater than 0 for PAID courses");
+        }
     }
 
     @Override
     public CourseDTO createCourse(CourseDTO courseDTO) {
+        normalizeAndValidatePricing(courseDTO);
         CourseEntity entity = CourseMapper.toEntity(courseDTO);
         CourseEntity savedCourse = courseRepository.save(entity);
+        kafkaProducerService.sendCourseCreatedEvent(savedCourse);
         return CourseMapper.toDto(savedCourse);
     }
 
@@ -48,10 +68,11 @@ public class CourseServiceImpl implements CourseService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Course not found with id: " + courseId));
 
+        normalizeAndValidatePricing(courseDTO);
         existing.setTitle(courseDTO.getTitle());
         existing.setDescription(courseDTO.getDescription());
         existing.setPrice(courseDTO.getPrice());
-        existing.setStatus(courseDTO.getStatus());
+        existing.setCourseType(courseDTO.getCourseType());
 
         CourseEntity updated = courseRepository.save(existing);
         return CourseMapper.toDto(updated);

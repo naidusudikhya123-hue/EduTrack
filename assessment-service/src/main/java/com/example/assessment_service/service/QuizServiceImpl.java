@@ -1,6 +1,8 @@
 package com.example.assessment_service.service;
 
+import com.example.assessment_service.client.CourseClient;
 import com.example.assessment_service.client.UserClient;
+import com.example.assessment_service.dto.CourseDTO;
 import com.example.assessment_service.dto.*;
 import com.example.assessment_service.entity.Question;
 import com.example.assessment_service.entity.Quiz;
@@ -8,6 +10,7 @@ import com.example.assessment_service.entity.QuizAttempt;
 import com.example.assessment_service.repository.QuestionRepository;
 import com.example.assessment_service.repository.QuizAttemptRepository;
 import com.example.assessment_service.repository.QuizRepository;
+import feign.FeignException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -20,16 +23,22 @@ public class QuizServiceImpl implements QuizService {
     private final QuestionRepository questionRepository;
     private final QuizAttemptRepository attemptRepository;
     private final UserClient userClient;
+    private final CourseClient courseClient;
 
-    public QuizServiceImpl(QuizRepository quizRepository, QuestionRepository questionRepository, QuizAttemptRepository attemptRepository,UserClient userClient) {
+    public QuizServiceImpl(QuizRepository quizRepository, QuestionRepository questionRepository,
+                           QuizAttemptRepository attemptRepository, UserClient userClient,
+                           CourseClient courseClient) {
         this.quizRepository = quizRepository;
         this.questionRepository = questionRepository;
         this.attemptRepository = attemptRepository;
-        this.userClient=userClient;
+        this.userClient = userClient;
+        this.courseClient = courseClient;
     }
 
     @Override
     public QuizDTO startQuiz(String courseId) {
+
+        ensureCourseExists(courseId);
 
         Quiz quiz = quizRepository.findByCourseId(courseId)
                 .orElseThrow(() -> new RuntimeException("Quiz not found"));
@@ -62,6 +71,8 @@ public class QuizServiceImpl implements QuizService {
     @Override
     public QuizResultDTO submitQuiz(String quizId,
                                     QuizSubmissionDTO submission) {
+
+        ensureCourseExists(submission.getCourseId());
 
         List<Question> questions =
                 questionRepository.findByQuizId(quizId);
@@ -96,7 +107,15 @@ public class QuizServiceImpl implements QuizService {
 
         List<QuizAttempt> attempts = attemptRepository.findByUserId(userId);
 
-        UserDTO userResponse = userClient.getUserById(userId);
+        UserDTO userResponse;
+        try {
+            userResponse = userClient.getUserById(userId);
+        } catch (FeignException e) {
+            if (e.status() == 404) {
+                throw new RuntimeException("User not found: " + userId);
+            }
+            throw new RuntimeException("User service error: " + e.getMessage(), e);
+        }
 
         return attempts.stream().map(attempt -> {
 
@@ -113,6 +132,20 @@ public class QuizServiceImpl implements QuizService {
             return dto;
 
         }).toList();
+    }
+
+    private void ensureCourseExists(String courseId) {
+        try {
+            CourseDTO course = courseClient.getCourseById(courseId);
+            if (course == null) {
+                throw new RuntimeException("Course not found: " + courseId);
+            }
+        } catch (FeignException e) {
+            if (e.status() == 404) {
+                throw new RuntimeException("Course not found: " + courseId);
+            }
+            throw new RuntimeException("Course service error: " + e.getMessage(), e);
+        }
     }
 
 }

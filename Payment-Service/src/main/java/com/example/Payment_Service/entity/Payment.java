@@ -19,38 +19,20 @@ public class Payment {
     @Column(nullable = false)
     private String courseId;
 
-    private String enrollmentId;
-
     @Column(nullable = false)
     private Double amount;
 
-    private String currency;
-
     @Enumerated(EnumType.STRING)
-    private PaymentStatus paymentStatus;
+    private PaymentStatus status;
 
-    @Enumerated(EnumType.STRING)
-    private PaymentMethod paymentMethod;
-
+    @Column(nullable = false)
     private String verificationCode;
+
+    @Column(nullable = false)
     private Boolean verified;
+
+    @Column(nullable = false)
     private LocalDateTime codeExpiryTime;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-
-    @PrePersist
-    public void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-        this.paymentStatus = PaymentStatus.PENDING;
-        this.currency = "INR";
-        this.verified = false;
-    }
-
-    @PreUpdate
-    public void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
 
     public String getPaymentId() {
         return paymentId;
@@ -76,14 +58,6 @@ public class Payment {
         this.courseId = courseId;
     }
 
-    public String getEnrollmentId() {
-        return enrollmentId;
-    }
-
-    public void setEnrollmentId(String enrollmentId) {
-        this.enrollmentId = enrollmentId;
-    }
-
     public Double getAmount() {
         return amount;
     }
@@ -92,28 +66,12 @@ public class Payment {
         this.amount = amount;
     }
 
-    public String getCurrency() {
-        return currency;
+    public PaymentStatus getStatus() {
+        return status;
     }
 
-    public void setCurrency(String currency) {
-        this.currency = currency;
-    }
-
-    public PaymentStatus getPaymentStatus() {
-        return paymentStatus;
-    }
-
-    public void setPaymentStatus(PaymentStatus paymentStatus) {
-        this.paymentStatus = paymentStatus;
-    }
-
-    public PaymentMethod getPaymentMethod() {
-        return paymentMethod;
-    }
-
-    public void setPaymentMethod(PaymentMethod paymentMethod) {
-        this.paymentMethod = paymentMethod;
+    public void setStatus(PaymentStatus status) {
+        this.status = status;
     }
 
     public String getVerificationCode() {
@@ -138,21 +96,5 @@ public class Payment {
 
     public void setCodeExpiryTime(LocalDateTime codeExpiryTime) {
         this.codeExpiryTime = codeExpiryTime;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
 }

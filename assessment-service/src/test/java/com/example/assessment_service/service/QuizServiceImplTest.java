@@ -1,5 +1,7 @@
 package com.example.assessment_service.service;
 
+import com.example.assessment_service.client.CourseClient;
+import com.example.assessment_service.dto.CourseDTO;
 import com.example.assessment_service.dto.QuizDTO;
 import com.example.assessment_service.dto.QuizResultDTO;
 import com.example.assessment_service.dto.QuizSubmissionDTO;
@@ -37,6 +39,9 @@ class QuizServiceImplTest {
     @Mock
     private QuizAttemptRepository attemptRepository;
 
+    @Mock
+    private CourseClient courseClient;
+
     @InjectMocks
     private QuizServiceImpl quizService;
 
@@ -62,6 +67,10 @@ class QuizServiceImplTest {
         when(quizRepository.findByCourseId("c1"))
                 .thenReturn(Optional.of(quiz));
 
+        CourseDTO courseDto = new CourseDTO();
+        courseDto.setCourseId("c1");
+        when(courseClient.getCourseById("c1")).thenReturn(courseDto);
+
         // ✅ FIXED HERE
         when(questionRepository.findRandomQuestions("q1"))
                 .thenReturn(new ArrayList<>(List.of(question1, question2)));
@@ -81,6 +90,9 @@ class QuizServiceImplTest {
 
     @Test
     void startQuizThrowsWhenQuizMissing() {
+        CourseDTO courseDto = new CourseDTO();
+        courseDto.setCourseId("c404");
+        when(courseClient.getCourseById("c404")).thenReturn(courseDto);
         when(quizRepository.findByCourseId("c404")).thenReturn(Optional.empty());
 
         assertThrows(RuntimeException.class, () -> quizService.startQuiz("c404"));
@@ -96,6 +108,9 @@ class QuizServiceImplTest {
         submission.setCourseID("c1");
         submission.setAnswers(Map.of("1", "A", "2", "B"));
 
+        CourseDTO courseDto = new CourseDTO();
+        courseDto.setCourseId("c1");
+        when(courseClient.getCourseById("c1")).thenReturn(courseDto);
         when(questionRepository.findByQuizId("q1")).thenReturn(List.of(question1, question2));
 
         QuizResultDTO result = quizService.submitQuiz("q1", submission);

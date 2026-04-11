@@ -1,5 +1,7 @@
 package com.Edutrack.enrollments.service.impl;
+import com.Edutrack.enrollments.client.CourseClient;
 import com.Edutrack.enrollments.client.UserClient;
+import com.Edutrack.enrollments.dto.CourseDTO;
 import com.Edutrack.enrollments.dto.EnrollmentCreateRequestDTO;
 import com.Edutrack.enrollments.dto.UserEnrollmentDTO;
 import com.Edutrack.enrollments.dto.UserResponseDTO;
@@ -30,6 +32,9 @@ class EnrollmentServiceImplTest {
     private UserClient userClient;
 
     @Mock
+    private CourseClient courseClient;
+
+    @Mock
     private EnrollmentRepository enrollmentRepository;
 
     @InjectMocks
@@ -38,6 +43,9 @@ class EnrollmentServiceImplTest {
     @Test
     void enrollUserThrowsWhenDuplicateEnrollmentExists() {
         EnrollmentCreateRequestDTO dto = new EnrollmentCreateRequestDTO("u1", "c1");
+        CourseDTO course = new CourseDTO();
+        when(courseClient.getCourseById("c1")).thenReturn(course);
+        when(userClient.getUserById("u1")).thenReturn(new UserResponseDTO());
         when(enrollmentRepository.existsByUserIdAndCourseId("u1", "c1")).thenReturn(true);
 
         assertThrows(EnrollmentAlreadyExistsException.class, () -> enrollmentService.enrollUser(dto));

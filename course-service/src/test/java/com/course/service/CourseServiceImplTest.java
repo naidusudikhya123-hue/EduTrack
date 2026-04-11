@@ -2,7 +2,7 @@ package com.course.service;
 
 import com.course.dto.CourseDTO;
 import com.course.entity.CourseEntity;
-import com.course.enums.CourseStatus;
+import com.course.enums.CourseType;
 import com.course.exception.ResourceNotFoundException;
 import com.course.repository.CourseRepository;
 import org.junit.jupiter.api.Test;
@@ -26,25 +26,28 @@ class CourseServiceImplTest {
     @Mock
     private CourseRepository courseRepository;
 
+    @Mock
+    private KafkaProducerService kafkaProducerService;
+
     @InjectMocks
     private CourseServiceImpl courseService;
 
     @Test
-    void createCourseReturnsMappedSavedCourse() {
+    void createCourseReturnsMappedSavedCourseAndPublishesEvent() {
         CourseEntity savedEntity = new CourseEntity();
         savedEntity.setCourseId("c1");
         savedEntity.setTitle("Spring Boot");
         savedEntity.setDescription("Backend");
         savedEntity.setPrice(499);
         savedEntity.setInstructorId("i1");
-        savedEntity.setStatus(CourseStatus.APPROVED);
+        savedEntity.setCourseType(CourseType.PAID);
 
         CourseDTO request = new CourseDTO();
         request.setTitle("Spring Boot");
         request.setDescription("Backend");
         request.setPrice(499);
         request.setInstructorId("i1");
-        request.setStatus(CourseStatus.APPROVED);
+        request.setCourseType(CourseType.PAID);
 
         when(courseRepository.save(any(CourseEntity.class))).thenReturn(savedEntity);
 
@@ -52,6 +55,7 @@ class CourseServiceImplTest {
 
         assertEquals("c1", result.getCourseId());
         assertEquals("Spring Boot", result.getTitle());
+        verify(kafkaProducerService).sendCourseCreatedEvent(savedEntity);
     }
 
     @Test
@@ -69,7 +73,7 @@ class CourseServiceImplTest {
     }
 
     @Test
-    void deleteCourseDeletesExistingCourse() throws Exception {
+    void deleteCourseDeletesExistingCourse() {
         when(courseRepository.existsById("c1")).thenReturn(true);
 
         courseService.deleteCourse("c1");

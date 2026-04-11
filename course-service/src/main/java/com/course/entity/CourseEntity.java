@@ -1,6 +1,6 @@
 package com.course.entity;
 
-import com.course.enums.CourseStatus;
+import com.course.enums.CourseType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
@@ -18,11 +18,13 @@ public class CourseEntity {
     private String description;
     private double price;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private CourseType courseType;
+
     @Column(nullable = false)
     private String instructorId;
 
-    @Enumerated(EnumType.STRING)
-    private CourseStatus status;
 
     private LocalDateTime createdAt;
 
@@ -44,11 +46,12 @@ public class CourseEntity {
     public double getPrice() { return price; }
     public void setPrice(double price) { this.price = price; }
 
+    public CourseType getCourseType() { return courseType; }
+    public void setCourseType(CourseType courseType) { this.courseType = courseType; }
+
     public String getInstructorId() { return instructorId; }
     public void setInstructorId(String instructorId) { this.instructorId = instructorId; }
 
-    public CourseStatus getStatus() { return status; }
-    public void setStatus(CourseStatus status) { this.status = status; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

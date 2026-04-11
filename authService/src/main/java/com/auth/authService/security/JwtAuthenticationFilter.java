@@ -25,10 +25,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String header=request.getHeader("Authorization");
 
-        if(header!=null && header.startsWith("Bearer")) {
-            String token=header.substring(7);
+        if(header!=null && header.startsWith("Bearer ")) {
+            String token=header.substring(7).trim();
+            System.out.println("TOKEN: " + token);
+
 
             if(jwtUtil.validateToken(token)) {
+                System.out.println("TOKEN VALID");
                 String username= jwtUtil.getUsername(token);
                 String role=jwtUtil.getRole(token);
 
@@ -40,8 +43,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
+            else {
+                System.out.println("INVALID TOKEN");
+            }
         }
 
         filterChain.doFilter(request,response);
     }
 }
+
+
+
+
