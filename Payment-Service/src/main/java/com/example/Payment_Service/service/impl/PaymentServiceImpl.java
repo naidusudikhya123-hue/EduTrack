@@ -9,6 +9,7 @@ import com.example.Payment_Service.dto.PaymentCreateRequestDTO;
 import com.example.Payment_Service.dto.PaymentVerificationDTO;
 import com.example.Payment_Service.entity.Payment;
 import com.example.Payment_Service.enums.PaymentStatus;
+import com.example.Payment_Service.exception.ExternalServiceException;
 import com.example.Payment_Service.exception.InvalidPaymentAmountException;
 import com.example.Payment_Service.exception.InvalidVerificationCodeException;
 import com.example.Payment_Service.exception.PaymentNotFoundException;
@@ -162,7 +163,7 @@ public class PaymentServiceImpl implements PaymentService {
             if (e.status() == 404) {
                 throw new UserNotFoundException("User not found: " + userId);
             }
-            throw new RuntimeException("User service error: " + e.getMessage(), e);
+            throw new ExternalServiceException("User service error", e);
         }
     }
 
@@ -179,7 +180,7 @@ public class PaymentServiceImpl implements PaymentService {
             if (e.status() == 400) {
                 return;
             }
-            throw new RuntimeException("Enrollment could not be created after successful payment verification", e);
+            throw new ExternalServiceException("Enrollment could not be created after successful payment verification", e);
         }
     }
 

@@ -4,6 +4,8 @@ import com.example.assessment_service.client.CourseClient;
 import com.example.assessment_service.client.UserClient;
 import com.example.assessment_service.dto.CourseDTO;
 import com.example.assessment_service.dto.*;
+import com.example.assessment_service.exception.ResourceNotFoundException;
+import com.example.assessment_service.exception.UpstreamServiceException;
 import com.example.assessment_service.entity.Question;
 import com.example.assessment_service.entity.Quiz;
 import com.example.assessment_service.entity.QuizAttempt;
@@ -41,7 +43,7 @@ public class QuizServiceImpl implements QuizService {
         ensureCourseExists(courseId);
 
         Quiz quiz = quizRepository.findByCourseId(courseId)
-                .orElseThrow(() -> new RuntimeException("Quiz not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Quiz not found for course: " + courseId));
 
         List<Question> questions =
                 questionRepository.findRandomQuestions(quiz.getId());
@@ -112,15 +114,15 @@ public class QuizServiceImpl implements QuizService {
             userResponse = userClient.getUserById(userId);
         } catch (FeignException e) {
             if (e.status() == 404) {
-                throw new RuntimeException("User not found: " + userId);
+                throw new ResourceNotFoundException("User not found: " + userId);
             }
-            throw new RuntimeException("User service error: " + e.getMessage(), e);
+            throw new UpstreamServiceException("User service error: " + e.getMessage(), e);
         }
 
         return attempts.stream().map(attempt -> {
 
             Quiz quiz = quizRepository.findById(attempt.getQuizId())
-                    .orElseThrow(() -> new RuntimeException("Quiz not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Quiz not found: " + attempt.getQuizId()));
 
             UserDTO dto = new UserDTO();
             dto.setUserId(userId);
@@ -138,13 +140,13 @@ public class QuizServiceImpl implements QuizService {
         try {
             CourseDTO course = courseClient.getCourseById(courseId);
             if (course == null) {
-                throw new RuntimeException("Course not found: " + courseId);
+                throw new ResourceNotFoundException("Course not found: " + courseId);
             }
         } catch (FeignException e) {
             if (e.status() == 404) {
-                throw new RuntimeException("Course not found: " + courseId);
+                throw new ResourceNotFoundException("Course not found: " + courseId);
             }
-            throw new RuntimeException("Course service error: " + e.getMessage(), e);
+            throw new UpstreamServiceException("Course service error: " + e.getMessage(), e);
         }
     }
 

@@ -7,6 +7,7 @@ import com.edutrack.certificateService.dto.CertificateRequestDTO;
 import com.edutrack.certificateService.dto.CertificateResponseDTO;
 import com.edutrack.certificateService.dto.UserEnrollmentFeignDTO;
 import com.edutrack.certificateService.entity.Certificate;
+import com.edutrack.certificateService.exception.CertificateNotFoundException;
 import com.edutrack.certificateService.repository.CertificateRepository;
 import feign.FeignException;
 import org.springframework.stereotype.Service;
@@ -89,7 +90,7 @@ public class CertificateServiceImpl implements CertificateService {
     public CertificateResponseDTO getCertificate(String userId, String courseId) {
         Certificate cert = repository
                 .findByUserIdAndCourseId(userId, courseId)
-                .orElseThrow(() -> new RuntimeException("Certificate not found"));
+                .orElseThrow(() -> new CertificateNotFoundException("Certificate not found"));
 
         return map(cert);
     }

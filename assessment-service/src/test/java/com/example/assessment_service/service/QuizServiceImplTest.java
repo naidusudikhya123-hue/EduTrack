@@ -1,7 +1,9 @@
 package com.example.assessment_service.service;
 
 import com.example.assessment_service.client.CourseClient;
+import com.example.assessment_service.client.UserClient;
 import com.example.assessment_service.dto.CourseDTO;
+import com.example.assessment_service.exception.ResourceNotFoundException;
 import com.example.assessment_service.dto.QuizDTO;
 import com.example.assessment_service.dto.QuizResultDTO;
 import com.example.assessment_service.dto.QuizSubmissionDTO;
@@ -41,6 +43,9 @@ class QuizServiceImplTest {
 
     @Mock
     private CourseClient courseClient;
+
+    @Mock
+    private UserClient userClient;
 
     @InjectMocks
     private QuizServiceImpl quizService;
@@ -95,7 +100,7 @@ class QuizServiceImplTest {
         when(courseClient.getCourseById("c404")).thenReturn(courseDto);
         when(quizRepository.findByCourseId("c404")).thenReturn(Optional.empty());
 
-        assertThrows(RuntimeException.class, () -> quizService.startQuiz("c404"));
+        assertThrows(ResourceNotFoundException.class, () -> quizService.startQuiz("c404"));
     }
 
     @Test

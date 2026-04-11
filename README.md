@@ -1,274 +1,165 @@
-# Online Learning Platform
+# Edutrack — Online Learning Platform
 
-A microservices-based online learning platform built with Spring Boot and Spring Cloud.
+Microservices-based learning platform: users, courses, enrollments, payments, quizzes, certificates, and JWT-secured API access through a Spring Cloud Gateway.
 
-## 🏗️ Architecture
+## Architecture
 
-This platform follows a microservices architecture with the following services:
+| Module | Responsibility |
+|--------|----------------|
+| **configServer** | Central configuration (Spring Cloud Config) |
+| **discoveryService** | Eureka service registry |
+| **api-gateway** | Routes, JWT validation, role-based path rules |
+| **authService** | Signup/login, JWT issuance |
+| **userService** | User profiles and roles |
+| **course-service** | Courses and videos |
+| **enrollments** | Student–course enrollments |
+| **Payment-Service** | Paid-course payments, OTP verification, enrollment sync |
+| **assessment-service** | Quizzes and attempts |
+| **certificateService** | Completion certificates |
+| **notification-service** | Kafka-driven notifications (no REST API in codebase) |
 
-- **configServer**: Centralized configuration service using Spring Cloud Config
-- **discoveryService**: Service registry using Netflix Eureka
-- **api-gateway**: API Gateway for routing and cross-cutting concerns
-- **authService**: Authentication and authorization service (JWT-based)
-- **userService**: User management service
-- **course-service**: Course catalog and management
-- **enrollments**: Student enrollment functionality
-- **assessment-service**: Tests, quizzes, and grading system
-- **Payment-Service**: Payment processing for course purchases
-- **certificateService**: Certificate generation and management
+**Communication:** REST via OpenFeign between services (Eureka + load balancer); Kafka for course-created and related events.
 
-## 🛠️ Technology Stack
+## Tech stack
 
-- **Java 17**
-- **Spring Boot 4.0.x**
-- **Spring Cloud 2025.1.x**
-- **Spring Data JPA**
-- **MySQL** (database for each service)
-- **Eureka** (service discovery)
-- **Spring Cloud Config** (centralized configuration)
-- **OpenFeign** (declarative REST clients)
-- **JWT** (JSON Web Tokens for authentication)
-- **Maven** (build and dependency management)
+- Java 17, Spring Boot 4.x, Spring Cloud 2025.x  
+- MySQL (per service), Eureka, Spring Cloud Config  
+- Spring Cloud Gateway (WebFlux), OpenFeign, JWT (JJWT)  
+- Kafka (course-service, Payment-Service, notification-service)
 
-## 📋 Prerequisites
+## Prerequisites
 
-- JDK 17 or higher
-- Maven 3.8+
-- MySQL server
-- Git (for config server if using Git backend)
+- JDK 17, Maven  
+- MySQL (databases per `config-repo/*.yml`)  
+- **Recommended startup order:** `configServer` → `discoveryService` → remaining services (any order after registry is up)  
+- API Gateway default port in config: **9000** (see `config-repo/api-gateway.yml`)
 
-## 🚀 Getting Started
+## API Gateway
 
-### 1. Clone the repository
-```bash
-git clone <repository-url>
-cd online-learning
-```
+- **Base URL (typical):** `http://localhost:9000`  
+- **Auth:** `Authorization: Bearer <token>` for protected routes (except public paths such as `/auth/**`, `/actuator/**`).  
+- **Routed prefixes:** `/auth`, `/users`, `/enrollments`, `/courses`, `/certificates`, `/quizzes`, `/payments`  
 
-### 2. Configure MySQL
-Create databases for each service (or let them be created automatically):
-- configserver
-- discovery
-- gateway
-- auth
-- user
-- course
-- enrollment
-- assessment
-- payment
-- certificate
-
-Update database credentials in respective `application.yml` files or via config server.
-
-### 3. Build the project
-```bash
-./mvnw clean install
-```
-
-### 4. Run the services (in order)
-
-**Terminal 1: Configuration Server**
-```bash
-./mvnw spring-boot:run -pl configServer
-```
-
-**Terminal 2: Discovery Service (Eureka)**
-```bash
-./mvnw spring-boot:run -pl discoveryService
-```
-
-**Terminal 3: API Gateway**
-```bash
-./mvnw spring-boot:run -pl api-gateway
-```
-
-**Terminal 4: Auth Service**
-```bash
-./mvnw spring-boot:run -pl authService
-```
-
-**Terminal 5+: Other Services**
-```bash
-# User Service
-./mvnw spring-boot:run -pl userService
-
-# Course Service
-./mvnw spring-boot:run -pl course-service
-
-# Enrollments Service
-./mvnw spring-boot:run -pl enrollments
-
-# Assessment Service
-./mvnw spring-boot:run -pl assessment-service
-
-# Payment Service
-./mvnw spring-boot:run -pl Payment-Service
-
-# Certificate Service
-./mvnw spring-boot:run -pl certificateService
-```
-
-### 5. Access the platform
-- **API Gateway**: http://localhost:8080 (default)
-- **Eureka Dashboard**: http://localhost:8761
-- **Individual Services**: Check respective `application.yml` for ports
-
-## 🔧 Development
-
-### Building individual services
-```bash
-./mvnw clean install -pl <service-name> -am
-```
-
-### Running tests
-```bash
-# All tests
-./mvnw test
-
-# Specific service
-./mvnw test -pl userService
-
-# Specific test class
-./mvnw test -Dtest=UserControllerTest -pl userService
-```
-
-### Skipping tests (for faster builds)
-```bash
-./mvnw clean install -DskipTests
-```
-
-## 📁 Project Structure
-
-```
-online-learning/
-├── configServer/          # Configuration service
-├── discoveryService/      # Eureka service registry
-├── api-gateway/           # API Gateway
-├── authService/           # Authentication service
-├── userService/           # User management
-├── course-service/        # Course management
-├── enrollments/           # Enrollment service
-├── assessment-service/    # Assessment and grading
-├── Payment-Service/       # Payment processing
-├── certificateService/    # Certificate generation
-├── pom.xml                # Parent Maven project
-├── mvnw                   # Maven wrapper
-└── mvnw.cmd               # Maven wrapper (Windows)
-```
-
-Each service follows a standard Spring Boot structure:
-```
-service-name/
-├── src/
-│   ├── main/
-│   │   ├── java/
-│   │   │   └── com/{service}/
-│   │   │       ├── {ServiceName}Application.java
-│   │   │       ├── controller/
-│   │   │       ├── service/
-│   │   │       ├── repository/
-│   │   │       ├── model/
-│   │   │       └── config/
-│   │   └── resources/
-│   │       ├── application.yml
-│   │       └── application-{profile}.yml
-│   └── test/
-│       ├── java/
-│   └── resources/
-├── pom.xml
-└── mvnw / mvnw.cmd
-```
-
-## 🔐 Security
-
-- Authentication handled by authService using JWT tokens
-- Passwords encoded using BCrypt
-- Role-based access control (RBAC)
-- API Gateway handles token validation and routing
-- Services validate JWT tokens for protected endpoints
-
-## 🔄 Service Communication
-
-- **Service Discovery**: Services register with Eureka (discoveryService)
-- **Configuration**: Services fetch configuration from configServer
-- **Inter-service Communication**: REST calls via Spring Cloud OpenFeign
-- **External Access**: All client traffic goes through api-gateway
-
-## 📝 Configuration
-
-Services use Spring Cloud Config for externalized configuration:
-- Default configuration in configServer's native or Git repository
-- Environment-specific configurations (application-{profile}.yml)
-- Profiles: dev, test, prod (can be extended)
-
-## ⚙️ Environment Variables
-
-Key environment variables that can be configured:
-- `SPRING_PROFILES_ACTIVE`: Active Spring profile (dev, test, prod)
-- `SERVER_PORT`: Port for the service to run on
-- Database connection strings and credentials
-- JWT secret keys and expiration times
-- Eureka server URL
-- Config server URL
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-1. **Services won't start**:
-   - Ensure configServer is running first
-   - Ensure discoveryService is running second
-   - Check MySQL is running and accessible
-   - Verify database credentials in application.yml
-
-2. **Service registration problems**:
-   - Check Eureka dashboard (http://localhost:8761)
-   - Verify eureka.client.serviceUrl.defaultZone
-   - Check network connectivity between services
-
-3. **Database connection errors**:
-   - Verify MySQL server is running
-   - Check username/password in application.yml
-   - Ensure database exists or has create permissions
-
-4. **Port conflicts**:
-   - Change server.port in application.yml if needed
-   - Check what's running on conflicting ports
-
-### Debugging Commands
-
-```bash
-# Check if services are registered
-curl http://localhost:8761/eureka/apps
-
-# Test service health (example for user service)
-curl http://localhost:8082/actuator/health
-
-# View logs in real-time
-./mvnw spring-boot:run -pl userService
-
-# Check OpenFeign client configuration
-# Look for @FeignClient annotations in service code
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- Spring Boot and Spring Cloud teams
-- Netflix OSS for Eureka
-- The open source community
+> **Note:** `course-service` also exposes `/videos/**`, but the gateway snippet in `config-repo/api-gateway.yml` only predicates `/courses/**`. To reach videos through the gateway, add a route for `/videos/**` or call **course-service** directly on its configured port.
 
 ---
 
-**Note**: This is a learning project demonstrating microservices architecture with Spring Boot and Spring Cloud. For production use, additional considerations for security, monitoring, logging, and resilience patterns would be needed.
+## HTTP API — all endpoints
+
+Paths below are **relative** (prepend gateway base URL or the service’s own `server.port` when calling directly).
+
+### authService — `/auth`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/auth/signup` | Register auth user + create user profile (calls user-service) |
+| POST | `/auth/login` | Login; returns JWT |
+
+### userService — `/users`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/users` | Create user |
+| GET | `/users` | List all users |
+| GET | `/users/{userId}` | Get user by id |
+| PUT | `/users/{userId}` | Update user |
+| DELETE | `/users/{userId}` | Delete user |
+| GET | `/users/role/{roleName}` | Users by role name |
+
+### course-service — `/courses`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/courses/create` | Create course |
+| GET | `/courses/get` | List all courses |
+| GET | `/courses/{courseId}` | Get course by id |
+| PUT | `/courses/{courseId}` | Update course |
+| DELETE | `/courses/{courseId}` | Delete course |
+| GET | `/courses/instructors/{instructorId}` | Courses by instructor |
+
+### course-service — `/videos`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/videos` | Create video |
+| GET | `/videos/get` | List all videos |
+| GET | `/videos/getd/{courseId}` | Videos for course |
+| PUT | `/videos/{videoId}` | Update video |
+| DELETE | `/videos/{videoId}` | Delete video |
+| GET | `/videos/count/{courseId}` | Video count for course |
+
+### enrollments — `/enrollments`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/enrollments` | Create enrollment (validates user + course via Feign) |
+| GET | `/enrollments/{id}` | Get enrollment by id |
+| GET | `/enrollments/users/{userId}/details` | User’s enrollments with profile info |
+| GET | `/enrollments/course/{courseId}` | Enrollments for a course |
+| PUT | `/enrollments/{id}/cancel` | Cancel enrollment |
+
+### Payment-Service — `/payments`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/payments/addPayment` | Start payment (validates user + course) |
+| POST | `/payments/enroll` | Check payment eligibility for enrollment |
+| POST | `/payments/verify` | Verify OTP; on success creates enrollment via enrollments service |
+| GET | `/payments/user/{userId}` | List payments for user |
+
+### assessment-service — `/quizzes`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/quizzes/start/{courseId}` | Start quiz for course (validates course via Feign) |
+| POST | `/quizzes/submit/{quizId}` | Submit answers (validates course via Feign) |
+| GET | `/quizzes/users/{userId}` | Quiz attempts + user info for user |
+
+### certificateService — `/certificates`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/certificates/generate` | Issue certificate (validates user, course, active enrollment) |
+| GET | `/certificates/{userId}/{courseId}` | Get certificate |
+
+### Infrastructure (typical defaults)
+
+| Service | Purpose | URL |
+|---------|---------|-----|
+| Eureka | Dashboard | `http://localhost:8761` |
+| Config Server | Config API | `http://localhost:8888` (if enabled) |
+
+Actuator endpoints may be exposed per service configuration (e.g. `/actuator/health`).
+
+---
+
+## Inter-service calls (Feign) — reference
+
+These are **not** gateway paths; services call each other by Eureka name.
+
+| Caller | Target | Method | Path |
+|--------|--------|--------|------|
+| authService | user-service | POST | `/users` |
+| enrollments | user-service | GET | `/users/{userId}` |
+| enrollments | course-service | GET | `/courses/{courseId}` |
+| Payment-Service | user-service | GET | `/users/{userId}` |
+| Payment-Service | course-service | GET | `/courses/{courseId}` |
+| Payment-Service | enrollments | POST | `/enrollments` |
+| assessment-service | user-service | GET | `/users/{userId}` |
+| assessment-service | course-service | GET | `/courses/{courseId}` |
+| certificateService | user-service | GET | `/users/{userId}` |
+| certificateService | course-service | GET | `/courses/{courseId}` |
+| certificateService | enrollments | GET | `/enrollments/users/{userId}/details` |
+
+---
+
+## Build & test
+
+```bash
+./mvnw clean install
+./mvnw clean install -DskipTests
+./mvnw test -pl userService
+./mvnw spring-boot:run -pl api-gateway
+```
+
+Individual service ports and JDBC URLs are defined under `config-repo/` and each module’s `application.yml` (with optional Config Server import).

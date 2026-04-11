@@ -4,6 +4,7 @@ import com.auth.authService.dto.LoginRequest;
 import com.auth.authService.dto.LoginResponse;
 import com.auth.authService.dto.UserSignupRequestDTO;
 import com.auth.authService.service.AuthService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -17,7 +18,7 @@ public class AuthController {
     }
 
     @PostMapping("/signup")
-    public String register(@RequestBody UserSignupRequestDTO req) {
+    public String register(@Valid @RequestBody UserSignupRequestDTO req) {
         return service.signup(req);
     }
 

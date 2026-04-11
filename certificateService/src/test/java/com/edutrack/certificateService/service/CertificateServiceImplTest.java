@@ -9,6 +9,7 @@ import com.edutrack.certificateService.dto.CourseDTO;
 import com.edutrack.certificateService.dto.UserEnrollmentFeignDTO;
 import com.edutrack.certificateService.dto.UserResponseDTO;
 import com.edutrack.certificateService.entity.Certificate;
+import com.edutrack.certificateService.exception.CertificateNotFoundException;
 import com.edutrack.certificateService.repository.CertificateRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -87,6 +88,7 @@ class CertificateServiceImplTest {
     void getCertificateThrowsWhenMissing() {
         when(repository.findByUserIdAndCourseId("u404", "c404")).thenReturn(Optional.empty());
 
-        assertThrows(RuntimeException.class, () -> certificateService.getCertificate("u404", "c404"));
+        assertThrows(CertificateNotFoundException.class,
+                () -> certificateService.getCertificate("u404", "c404"));
     }
 }

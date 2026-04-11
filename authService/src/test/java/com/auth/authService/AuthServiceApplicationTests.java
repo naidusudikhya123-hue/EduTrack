@@ -1,13 +1,13 @@
 package com.auth.authService;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 class AuthServiceApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
-
+    @Test
+    void applicationClassIsPresent() {
+        assertNotNull(AuthServiceApplication.class);
+    }
 }

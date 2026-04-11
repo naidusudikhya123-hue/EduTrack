@@ -2,12 +2,13 @@ package com.auth.authService.service;
 
 import com.auth.authService.client.UserClient;
 import com.auth.authService.dto.*;
+import com.auth.authService.exception.EmailAlreadyRegisteredException;
+import com.auth.authService.exception.InvalidCredentialsException;
 import com.auth.authService.model.AuthUser;
 import com.auth.authService.repository.AuthRepository;
 import com.auth.authService.security.JwtUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import com.auth.authService.client.UserClient;
 
 @Service
 public class AuthService {
@@ -28,7 +29,7 @@ private final UserClient userClient;
 
     public String signup(UserSignupRequestDTO req) {
         if (repo.findByEmail(req.getEmailId()).isPresent()) {
-            throw new RuntimeException("User already exists");
+            throw new EmailAlreadyRegisteredException("An account with this email already exists");
         }
 
         AuthUser user = new AuthUser();
@@ -51,10 +52,10 @@ private final UserClient userClient;
 
     public LoginResponse login(LoginRequest req) {
         AuthUser user = repo.findByEmail(req.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found--"));
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
 
         if (!encoder.matches(req.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid credentials");
+            throw new InvalidCredentialsException("Invalid email or password");
         }
 
         String token = jwtUtil.generateToken(user.getEmail(), user.getRole());

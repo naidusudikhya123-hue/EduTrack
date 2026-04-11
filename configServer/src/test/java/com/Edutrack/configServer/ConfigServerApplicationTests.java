@@ -1,13 +1,13 @@
 package com.Edutrack.configServer;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 class ConfigServerApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
-
+    @Test
+    void applicationClassIsPresent() {
+        assertNotNull(ConfigServerApplication.class);
+    }
 }

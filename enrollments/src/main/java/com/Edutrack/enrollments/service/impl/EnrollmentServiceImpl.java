@@ -5,8 +5,10 @@ import com.Edutrack.enrollments.client.UserClient;
 import com.Edutrack.enrollments.dto.*;
 import com.Edutrack.enrollments.entity.Enrollment;
 import com.Edutrack.enrollments.enums.EnrollmentStatus;
+import com.Edutrack.enrollments.exception.CourseNotFoundException;
 import com.Edutrack.enrollments.exception.EnrollmentAlreadyExistsException;
 import com.Edutrack.enrollments.exception.EnrollmentNotFoundException;
+import com.Edutrack.enrollments.exception.UpstreamServiceException;
 import com.Edutrack.enrollments.exception.UserNotFoundException;
 import com.Edutrack.enrollments.mapper.EnrollmentMapper;
 import com.Edutrack.enrollments.repository.EnrollmentRepository;
@@ -33,11 +35,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     public Enrollment enrollUser(EnrollmentCreateRequestDTO dto)
             throws EnrollmentAlreadyExistsException {
 
-        CourseDTO course = courseClient.getCourseById(dto.getCourseId());
-
-        if (course == null) {
-            throw new RuntimeException("Course not found");
-        }
+        CourseDTO course = loadCourseOrThrow(dto.getCourseId());
 
         ensureUserExists(dto.getUserId());
 
@@ -97,7 +95,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     @Override
     public List<EnrollmentResponseDTO> getEnrollmentsByCourse(String courseId) {
 
-        CourseDTO course = courseClient.getCourseById(courseId);
+        CourseDTO course = loadCourseOrThrow(courseId);
 
         return enrollmentRepository.findByCourseId(courseId)
                 .stream()
@@ -119,12 +117,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     public EnrollmentResponseDTO enrollAndReturnResponse(EnrollmentCreateRequestDTO dto)
             throws EnrollmentAlreadyExistsException {
 
-        // ✅ Validate course
-        CourseDTO course = courseClient.getCourseById(dto.getCourseId());
-
-        if (course == null) {
-            throw new RuntimeException("Course not found");
-        }
+        CourseDTO course = loadCourseOrThrow(dto.getCourseId());
 
         ensureUserExists(dto.getUserId());
 
@@ -154,7 +147,22 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             if (e.status() == 404) {
                 throw new UserNotFoundException("User not found: " + userId);
             }
-            throw new RuntimeException("Unable to validate user: " + e.getMessage(), e);
+            throw new UpstreamServiceException("Unable to validate user with user service", e);
+        }
+    }
+
+    private CourseDTO loadCourseOrThrow(String courseId) {
+        try {
+            CourseDTO course = courseClient.getCourseById(courseId);
+            if (course == null) {
+                throw new CourseNotFoundException("Course not found: " + courseId);
+            }
+            return course;
+        } catch (FeignException e) {
+            if (e.status() == 404) {
+                throw new CourseNotFoundException("Course not found: " + courseId);
+            }
+            throw new UpstreamServiceException("Unable to load course from course service", e);
         }
     }
 
