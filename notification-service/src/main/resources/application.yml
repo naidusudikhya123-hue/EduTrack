@@ -3,3 +3,17 @@ spring:
     name: notification-service
   config:
     import: optional:configserver:http://localhost:8888
+
+app:
+  monitoring:
+    aop:
+      enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,loggers
+  endpoint:
+    health:
+      show-details: always
