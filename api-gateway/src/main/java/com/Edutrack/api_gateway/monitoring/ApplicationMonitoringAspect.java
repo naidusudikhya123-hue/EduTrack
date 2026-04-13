@@ -26,6 +26,7 @@ public class ApplicationMonitoringAspect {
         return logExecution(joinPoint);
     }
 
+
     private Object logExecution(ProceedingJoinPoint joinPoint) throws Throwable {
         String methodName = joinPoint.getSignature().toShortString();
         long startTime = System.nanoTime();

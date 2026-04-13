@@ -76,7 +76,6 @@ class QuizServiceImplTest {
         courseDto.setCourseId("c1");
         when(courseClient.getCourseById("c1")).thenReturn(courseDto);
 
-        // ✅ FIXED HERE
         when(questionRepository.findRandomQuestions("q1"))
                 .thenReturn(new ArrayList<>(List.of(question1, question2)));
 
