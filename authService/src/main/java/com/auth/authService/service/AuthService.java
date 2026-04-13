@@ -7,7 +7,7 @@ import com.auth.authService.exception.InvalidCredentialsException;
 import com.auth.authService.model.AuthUser;
 import com.auth.authService.repository.AuthRepository;
 import com.auth.authService.security.JwtUtil;
-import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -18,20 +18,18 @@ public class AuthService {
     private final PasswordEncoder encoder;
     private final JwtUtil jwtUtil;
     private final UserClient userClient;
-    private final CircuitBreakerFactory<?, ?> circuitBreakerFactory;
 
     public AuthService(AuthRepository repo,
                        PasswordEncoder encoder,
                        JwtUtil jwtUtil,
-                       UserClient userClient,
-                       CircuitBreakerFactory<?, ?> circuitBreakerFactory) {
+                       UserClient userClient) {
         this.repo = repo;
         this.encoder = encoder;
         this.jwtUtil = jwtUtil;
         this.userClient = userClient;
-        this.circuitBreakerFactory = circuitBreakerFactory;
     }
 
+    @CircuitBreaker(name = "userServiceSignup", fallbackMethod = "userServiceSignupFallback")
     public String signup(UserSignupRequestDTO req) {
 
         if (repo.findByEmail(req.getEmailId()).isPresent()) {
@@ -53,16 +51,8 @@ public class AuthService {
         dto.setRoleId(req.getRoleId());
         dto.setPassword(req.getPassword());
 
-        // Circuit Breaker Call
-        String result = circuitBreakerFactory.create("userServiceSignup").run(
-                () -> {
-                    userClient.createUser(dto);
-                    return "User Registered Successfully";
-                },
-                throwable -> userServiceSignupFallback(req.getEmailId())
-        );
-
-        return result;
+        userClient.createUser(dto);
+        return "User Registered Successfully";
     }
 
     public LoginResponse login(LoginRequest req) {
@@ -78,8 +68,8 @@ public class AuthService {
         return new LoginResponse(token);
     }
 
-    private String userServiceSignupFallback(String emailId) {
+    public String userServiceSignupFallback(UserSignupRequestDTO req, Throwable throwable) {
         return "User registered in Auth Service, but profile creation failed temporarily. "
-                + "Please try again later or contact support. Email: " + emailId;
+                + "Please try again later or contact support. Email: " + req.getEmailId();
     }
 }
