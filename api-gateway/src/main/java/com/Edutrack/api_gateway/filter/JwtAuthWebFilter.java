@@ -47,7 +47,6 @@ public class JwtAuthWebFilter implements WebFilter {
         String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
         if (!isBearerAuthorization(authHeader)) {
             log.warn("Missing or invalid Authorization header for path: {}", path);
-//            System.out.println(authHeader);
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
         }

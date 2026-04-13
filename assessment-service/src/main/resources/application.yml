@@ -9,6 +9,15 @@ app:
     aop:
       enabled: true
 
+resilience4j:
+  circuitbreaker:
+    instances:
+      assessmentUserLookup:
+        slidingWindowSize: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+
 management:
   endpoints:
     web:

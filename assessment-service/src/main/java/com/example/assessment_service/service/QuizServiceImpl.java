@@ -1,18 +1,16 @@
 package com.example.assessment_service.service;
 
-import com.example.assessment_service.client.CourseClient;
 import com.example.assessment_service.client.UserClient;
-import com.example.assessment_service.dto.CourseDTO;
 import com.example.assessment_service.dto.*;
-import com.example.assessment_service.exception.ResourceNotFoundException;
-import com.example.assessment_service.exception.UpstreamServiceException;
 import com.example.assessment_service.entity.Question;
 import com.example.assessment_service.entity.Quiz;
 import com.example.assessment_service.entity.QuizAttempt;
 import com.example.assessment_service.repository.QuestionRepository;
 import com.example.assessment_service.repository.QuizAttemptRepository;
 import com.example.assessment_service.repository.QuizRepository;
-import feign.FeignException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -21,32 +19,34 @@ import java.util.*;
 @Service
 public class QuizServiceImpl implements QuizService {
 
+    private static final Logger log = LoggerFactory.getLogger(QuizServiceImpl.class);
+
     private final QuizRepository quizRepository;
     private final QuestionRepository questionRepository;
     private final QuizAttemptRepository attemptRepository;
     private final UserClient userClient;
-    private final CourseClient courseClient;
+    private final CircuitBreakerFactory<?, ?> circuitBreakerFactory;
 
-    public QuizServiceImpl(QuizRepository quizRepository, QuestionRepository questionRepository,
-                           QuizAttemptRepository attemptRepository, UserClient userClient,
-                           CourseClient courseClient) {
+    public QuizServiceImpl(QuizRepository quizRepository,
+                           QuestionRepository questionRepository,
+                           QuizAttemptRepository attemptRepository,
+                           UserClient userClient, CircuitBreakerFactory<?, ?> circuitBreakerFactory) {
         this.quizRepository = quizRepository;
         this.questionRepository = questionRepository;
         this.attemptRepository = attemptRepository;
         this.userClient = userClient;
-        this.courseClient = courseClient;
+
+        this.circuitBreakerFactory = circuitBreakerFactory;
     }
 
+    // ===================== START QUIZ =====================
     @Override
     public QuizDTO startQuiz(String courseId) {
 
-        ensureCourseExists(courseId);
-
         Quiz quiz = quizRepository.findByCourseId(courseId)
-                .orElseThrow(() -> new ResourceNotFoundException("Quiz not found for course: " + courseId));
+                .orElseThrow(() -> new RuntimeException("Quiz not found"));
 
-        List<Question> questions =
-                questionRepository.findRandomQuestions(quiz.getId());
+        List<Question> questions = questionRepository.findRandomQuestions(quiz.getId());
 
         Collections.shuffle(questions);
 
@@ -70,21 +70,16 @@ public class QuizServiceImpl implements QuizService {
         return new QuestionDTO(q.getId(), q.getQuestionText(), options);
     }
 
+    // ===================== SUBMIT QUIZ =====================
     @Override
-    public QuizResultDTO submitQuiz(String quizId,
-                                    QuizSubmissionDTO submission) {
+    public QuizResultDTO submitQuiz(String quizId, QuizSubmissionDTO submission) {
 
-        ensureCourseExists(submission.getCourseId());
-
-        List<Question> questions =
-                questionRepository.findByQuizId(quizId);
+        List<Question> questions = questionRepository.findByQuizId(quizId);
 
         int score = 0;
 
         for (Question q : questions) {
-
-            String studentAnswer =
-                    submission.getAnswers().get(q.getId());
+            String studentAnswer = submission.getAnswers().get(q.getId());
 
             if (q.getCorrectAnswer().equals(studentAnswer)) {
                 score++;
@@ -103,26 +98,25 @@ public class QuizServiceImpl implements QuizService {
         return new QuizResultDTO(score);
     }
 
-
+    // ===================== GET USER ATTEMPTS =====================
     @Override
     public List<UserDTO> getUserById(String userId) {
 
         List<QuizAttempt> attempts = attemptRepository.findByUserId(userId);
 
-        UserDTO userResponse;
-        try {
-            userResponse = userClient.getUserById(userId);
-        } catch (FeignException e) {
-            if (e.status() == 404) {
-                throw new ResourceNotFoundException("User not found: " + userId);
-            }
-            throw new UpstreamServiceException("User service error: " + e.getMessage(), e);
-        }
+        // 🔥 Circuit Breaker applied here
+        UserDTO userResponse = circuitBreakerFactory.create("assessmentUserLookup").run(
+                () -> {
+                    log.info("Calling USER-SERVICE for userId={}", userId);
+                    return userClient.getUserById(userId);
+                },
+                throwable -> userLookupFallback(userId, throwable)
+        );
 
         return attempts.stream().map(attempt -> {
 
             Quiz quiz = quizRepository.findById(attempt.getQuizId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Quiz not found: " + attempt.getQuizId()));
+                    .orElseThrow(() -> new RuntimeException("Quiz not found"));
 
             UserDTO dto = new UserDTO();
             dto.setUserId(userId);
@@ -136,18 +130,16 @@ public class QuizServiceImpl implements QuizService {
         }).toList();
     }
 
-    private void ensureCourseExists(String courseId) {
-        try {
-            CourseDTO course = courseClient.getCourseById(courseId);
-            if (course == null) {
-                throw new ResourceNotFoundException("Course not found: " + courseId);
-            }
-        } catch (FeignException e) {
-            if (e.status() == 404) {
-                throw new ResourceNotFoundException("Course not found: " + courseId);
-            }
-            throw new UpstreamServiceException("Course service error: " + e.getMessage(), e);
-        }
-    }
+    // ===================== FALLBACK =====================
+    private UserDTO userLookupFallback(String userId, Throwable throwable) {
 
+        log.error("🔥 Circuit Breaker triggered for userId={} due to {}",
+                userId, throwable.getMessage());
+
+        UserDTO fallbackUser = new UserDTO();
+        fallbackUser.setUserId(userId);
+        fallbackUser.setUserName("Fallback User");
+
+        return fallbackUser;
+    }
 }

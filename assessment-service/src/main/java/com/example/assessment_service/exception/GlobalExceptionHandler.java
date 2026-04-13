@@ -31,13 +31,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(body(HttpStatus.NOT_FOUND.value(), "Not Found", ex.getMessage()));
     }
-
-    @ExceptionHandler(UpstreamServiceException.class)
-    public ResponseEntity<Map<String, Object>> handleUpstream(UpstreamServiceException ex) {
-        log.error("Upstream service error: {}", ex.getMessage(), ex);
-        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-                .body(body(HttpStatus.BAD_GATEWAY.value(), "Bad Gateway", ex.getMessage()));
-    }
+//
+//    @ExceptionHandler(UpstreamServiceException.class)
+//    public ResponseEntity<Map<String, Object>> handleUpstream(UpstreamServiceException ex) {
+//        log.error("Upstream service error: {}", ex.getMessage(), ex);
+//        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+//                .body(body(HttpStatus.BAD_GATEWAY.value(), "Bad Gateway", ex.getMessage()));
+//    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {

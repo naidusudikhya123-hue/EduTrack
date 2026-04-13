@@ -25,6 +25,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     private final UserClient userClient;
     private final CourseClient courseClient;
 
+
     public EnrollmentServiceImpl(UserClient userClient, EnrollmentRepository enrollmentRepository, CourseClient courseClient) {
         this.userClient = userClient;
         this.enrollmentRepository = enrollmentRepository;
